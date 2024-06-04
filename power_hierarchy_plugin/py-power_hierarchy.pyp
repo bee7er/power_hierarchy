@@ -22,8 +22,8 @@ import rh_functions, rh_hierarchy_functions
 __res__ = c4d.plugins.GeResource()
 __res__.Init(__root__)
 
-# Unique ID obtained from www.plugincafe.com
-PLUGIN_ID = 48484848
+# Unique ID obtained from www.plugincafe.com, https://developers.maxon.net/forum/pid
+PLUGIN_ID = 1063386
 GROUP_ID_HELP = 100000
 GROUP_ID_FORM = 100001
 GROUP_ID_BUTTONS = 100002
