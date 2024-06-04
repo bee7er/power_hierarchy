@@ -9,6 +9,8 @@ import os, c4d
 import rh_functions
 
 config = rh_functions.get_config_values()
+debug = bool(int(config.get(rh_functions.CONFIG_SECTION, 'debug')))
+verbose = bool(int(config.get(rh_functions.CONFIG_SECTION, 'verbose')))
 separator = config.get(rh_functions.CONFIG_SECTION, 'separator')
 
 # ===================================================================
@@ -35,11 +37,16 @@ def get_hierarchy_objects(obj, obj_list, name_list, name):
     return [obj_list, name_list]
 
 # ===================================================================
-def find_hierarchy_object(obj, name):
+def find_hierarchy_object(obj, name, exactSearch):
 # ===================================================================
     # Is this our target object
-    if name == obj.GetName():
-        return obj
+    if True == exactSearch:
+        if name == obj.GetName():
+            return obj
+    else:
+        # Search for the name
+        if -1 != name.lower().find(obj.GetName().lower()):
+            return obj
 
     # Check if the object has children
     if obj.GetDown():
@@ -49,7 +56,7 @@ def find_hierarchy_object(obj, name):
         # Recursively call the function on the child object
         while child:
             # Recursive call on the child object
-            returned_obj = find_hierarchy_object(child, name)
+            returned_obj = find_hierarchy_object(child, name, exactSearch)
             if None != returned_obj:
                 return returned_obj
 
@@ -61,7 +68,9 @@ def find_hierarchy_object(obj, name):
 # ===================================================================
 def copy_object_attributes(doc, fromObj, toObj):
 # ===================================================================
-    print("Copying attributes from source object: " + fromObj.GetName() + " to target object: " + toObj.GetName())
+
+    if True == debug:
+        print("Copying attributes from source object: " + fromObj.GetName() + " to target object: " + toObj.GetName())
 
     description = toObj.GetDescription(c4d.DESCFLAGS_DESC_NONE)    # Get the description of the target object
 
@@ -117,12 +126,14 @@ def copy_object_attributes(doc, fromObj, toObj):
 # ===================================================================
 def copy_tracks(doc, fromObj, toObj):
 # ===================================================================
-    print("Copying tracks from source object: " + fromObj.GetName() + " to target object: " + toObj.GetName())
+    if True == debug:
+        print("Copying tracks from source object: " + fromObj.GetName() + " to target object: " + toObj.GetName())
 
     # Retrieves all the CTrack of fromObj. CTracks contains all keyframes information of a parameter.
     tracks = fromObj.GetCTracks()
     if not tracks:
-        print("No tracks information for source object: " + fromObj.GetName())
+        if True == debug:
+            print("No tracks information for source object: " + fromObj.GetName())
 
     # Defines a list that will contains the ID of parameters we want to copy.
     # Such ID can be found by drag-and-drop a parameter into the python console.
@@ -140,14 +151,16 @@ def copy_tracks(doc, fromObj, toObj):
 
         # If the Parameter ID of the current CTracks is not on the trackListToCopy we go to the next one.
         if not did[0].id in didListToCopy:
-            print("DID not included in our copying process: " + str(did[0].id))
+            if True == debug:
+                print("DID not included in our copying process: " + str(did[0].id))
             continue
 
         # Find if our static object already got an animation track for this parameter ID.
         foundTrack = toObj.FindCTrack(did)
         if foundTrack:
             # Removes the track if found
-            print("Replacing track in target object for DID: " + str(did[0].id))
+            if True == debug:
+                print("Replacing track in target object for DID: " + str(did[0].id))
             foundTrack.Remove()
 
         # Copies the initial CTrack in memory. All CCurve and CKey are kept in this CTrack.

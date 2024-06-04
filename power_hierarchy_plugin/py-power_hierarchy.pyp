@@ -34,9 +34,11 @@ SOURCE_HIERARCHY_TEXT = 100010
 SOURCE_HIERARCHY_EDIT = 100011
 TARGET_HIERARCHY_TEXT = 100012
 TARGET_HIERARCHY_EDIT = 100013
-CLOSE_BUTTON = 100014
-GO_BUTTON = 100015
+EXACT_SEARCH_CHECKBOX = 100014
+CLOSE_BUTTON = 100015
+GO_BUTTON = 100016
 TAG_LINE = 100020
+SPACE_LINE = 100021
 
 SOURCE = 'source'
 TARGET = 'target'
@@ -54,6 +56,7 @@ class HierarchyDlg(c4d.gui.GeDialog):
 
     source = config.get(rh_functions.CONFIG_SECTION, 'source')
     target = config.get(rh_functions.CONFIG_SECTION, 'target')
+    exact = bool(config.get(rh_functions.CONFIG_SECTION, 'exact'))
 
     # ===================================================================
     def Message(self, msg, result):
@@ -111,7 +114,7 @@ class HierarchyDlg(c4d.gui.GeDialog):
 
         self.SetTitle("Power Hierarchy")
 
-        self.GroupBegin(id=GROUP_ID_HELP, flags=c4d.BFH_SCALEFIT, cols=1, rows=2)
+        self.GroupBegin(id=GROUP_ID_HELP, flags=c4d.BFH_SCALEFIT, cols=1, rows=3)
         # Spaces: left, top, right, bottom
         self.GroupBorderSpace(10,10,10,10)
         """ Instructions """
@@ -119,21 +122,26 @@ class HierarchyDlg(c4d.gui.GeDialog):
         self.AddStaticText(id=FRAME_RANGES_HELP_2, flags=c4d.BFV_MASK, initw=720, name="", borderstyle=c4d.BORDER_NONE)
         self.GroupEnd()
 
-        self.GroupBegin(id=GROUP_ID_FORM, flags=c4d.BFH_SCALEFIT, cols=2, rows=3)
+        self.GroupBegin(id=GROUP_ID_FORM, flags=c4d.BFH_SCALEFIT, cols=2, rows=4)
         # Spaces: left, top, right, bottom
         self.GroupBorderSpace(10,0,10,0)
         """ Custom ranges field """
         self.AddStaticText(id=SOURCE_HIERARCHY_TEXT, flags=c4d.BFV_MASK, initw=160, name="Source hierarchy:", borderstyle=c4d.BORDER_NONE)
         self.AddEditText(id=SOURCE_HIERARCHY_EDIT, flags=c4d.BFV_MASK, initw=340, inith=16, editflags=0)
+
         self.AddStaticText(id=TARGET_HIERARCHY_TEXT, flags=c4d.BFV_MASK, initw=160, name="Target hierarchy:", borderstyle=c4d.BORDER_NONE)
         self.AddEditText(id=TARGET_HIERARCHY_EDIT, flags=c4d.BFV_MASK, initw=340, inith=16, editflags=0)
+
+        self.AddStaticText(id=SPACE_LINE, flags=c4d.BFH_LEFT, initw=440, name="", borderstyle=c4d.BORDER_NONE)
+        self.AddCheckbox(id=EXACT_SEARCH_CHECKBOX, flags=c4d.BFH_RIGHT, initw=440, inith=24, name="Exact search")
+
         self.AddStaticText(id=TAG_LINE, flags=c4d.BFH_FIT | c4d.BFH_RIGHT, initw=440, name="Powerhouse Industries", borderstyle=c4d.BORDER_NONE)
-        self.AddStaticText(id=TAG_LINE, flags=c4d.BFH_RIGHT, initw=440, name="", borderstyle=c4d.BORDER_NONE)
-        # self.AddStaticText(id=TAG_LINE, flags=c4d.BFH_RIGHT, initw=440, name="https://powerhouse.industries", borderstyle=c4d.BORDER_NONE)
+        self.AddStaticText(id=SPACE_LINE, flags=c4d.BFH_RIGHT, initw=440, name="", borderstyle=c4d.BORDER_NONE)
         self.GroupEnd()
 
         self.SetString(SOURCE_HIERARCHY_EDIT, self.source)
         self.SetString(TARGET_HIERARCHY_EDIT, self.target)
+        self.SetBool(EXACT_SEARCH_CHECKBOX, bool(self.exact))
 
         self.GroupBegin(id=GROUP_ID_BUTTONS, flags=c4d.BFH_SCALEFIT, cols=4, rows=5)
         # Spaces: left, top, right, bottom
@@ -173,6 +181,7 @@ class HierarchyDlg(c4d.gui.GeDialog):
             self.target_obj = doc.SearchObject(self.GetString(TARGET_HIERARCHY_EDIT))
             if None != self.target_obj:
                 self.target = self.target_obj.GetName()
+            self.exact = self.GetBool(EXACT_SEARCH_CHECKBOX)
 
             if True == verbose:
                 print("Go button clicked for source: " + self.source)
@@ -185,7 +194,8 @@ class HierarchyDlg(c4d.gui.GeDialog):
                 # Save changes to the config file
                 rh_functions.update_config_values(rh_functions.CONFIG_SECTION, [
                     ('source', str(self.source)),
-                    ('target', str(self.target))
+                    ('target', str(self.target)),
+                    ('exact', str(self.exact))
                     ])
             except Exception as e:
                 message = str(e)
@@ -217,7 +227,7 @@ class HierarchyDlg(c4d.gui.GeDialog):
                     continue
 
                 # Find the corresponding name in the target
-                target_obj_element = rh_hierarchy_functions.find_hierarchy_object(self.target_obj, source_obj_element.GetName())
+                target_obj_element = rh_hierarchy_functions.find_hierarchy_object(self.target_obj, source_obj_element.GetName(), self.exact)
                 if None != target_obj_element:
 
                     # *** Start by copying over the attributes
@@ -233,7 +243,9 @@ class HierarchyDlg(c4d.gui.GeDialog):
             c4d.EventAdd()
 
             # Completion
-            gui.MessageDialog("Attributes and animation tracks copied from " + self.source + " to " + self.target)
+            message = ("Attributes and animation tracks copied from " + self.source + " to " + self.target)
+            print(message)
+            gui.MessageDialog(message)
 
         # User clicked on the Close button
         elif messageId == CLOSE_BUTTON:
